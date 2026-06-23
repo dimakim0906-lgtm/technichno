@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}Заказ №{{ order.id }} — Технично{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">
+        Заказ №{{ order.id }}
+        <span class="badge bg-{{ order.status.color }} ms-2">{{ order.status.name }}</span>
+        {% if order.is_overdue %}
+        <span class="badge bg-danger ms-1">Просрочен</span>
+        {% endif %}
+    </h4>
+    <div>
+        <a href="{% url 'orders:edit' order.pk %}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil"></i> Редактировать
+        </a>
+        <a href="{% url 'orders:list' %}" class="btn btn-outline-secondary ms-2">
+            <i class="bi bi-arrow-left"></i> Назад
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Основная информация -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> Информация о заказе</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless">
+                    <tr><td class="text-muted">Клиент:</td>
+                        <td><strong>{{ order.client.full_name }}</strong></td></tr>
+                    <tr><td class="text-muted">Телефон:</td>
+                        <td>{{ order.client.phone }}</td></tr>
+                    <tr><td class="text-muted">Устройство:</td>
+                        <td>{{ order.device_brand }} {{ order.device_model }}</td></tr>
+                    <tr><td class="text-muted">IMEI:</td>
+                        <td>{{ order.imei|default:"не указан" }}</td></tr>
+                    <tr><td class="text-muted">Дефект:</td>
+                        <td>{{ order.defect_description }}</td></tr>
+                    <tr><td class="text-muted">Принял:</td>
+                        <td>{{ order.received_by.get_full_name|default:order.received_by.username }}</td></tr>
+                    <tr><td class="text-muted">Дата приёма:</td>
+                        <td>{{ order.received_at|date:"d.m.Y H:i" }}</td></tr>
+                    {% if order.closed_at %}
+                    <tr><td class="text-muted">Дата выдачи:</td>
+                        <td>{{ order.closed_at|date:"d.m.Y H:i" }}</td></tr>
+                    {% endif %}
+                    {% if order.notes %}
+                    <tr><td class="text-muted">Примечания:</td>
+                        <td>{{ order.notes }}</td></tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Финансы и статус -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-currency-exchange"></i> Финансы и статус</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless">
+                    <tr><td class="text-muted">Предв. стоимость:</td>
+                        <td>{{ order.estimated_cost|default:"не указана" }} {% if order.estimated_cost %}руб.{% endif %}</td></tr>
+                    <tr><td class="text-muted">Итоговая стоимость:</td>
+                        <td><strong>{{ order.final_cost|default:"не указана" }} {% if order.final_cost %}руб.{% endif %}</strong></td></tr>
+                    <tr><td class="text-muted">Оплачено:</td>
+                        <td class="text-success"><strong>{{ order.total_paid }} руб.</strong></td></tr>
+                    <tr><td class="text-muted">Долг:</td>
+                        <td class="{% if order.debt > 0 %}text-danger{% endif %}">
+                            <strong>{{ order.debt }} руб.</strong>
+                        </td></tr>
+                </table>
+
+                <!-- Смена статуса -->
+                <hr>
+                <h6 class="text-muted">Сменить статус:</h6>
+                <form method="post" action="{% url 'orders:change_status' order.pk %}" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <select name="status_id" class="form-select">
+                        {% for s in statuses %}
+                        <option value="{{ s.id }}" {% if s.id == order.status.id %}selected{% endif %}>
+                            {{ s.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Выполненные работы -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-tools"></i> Выполненные работы</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% for work in works %}
+                        <tr>
+                            <td>{{ work.description }}</td>
+                            <td class="text-end text-nowrap">{{ work.cost }} руб.</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td class="text-muted text-center py-2">Работы не добавлены</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer">
+                <form method="post" action="{% url 'orders:add_work' order.pk %}">
+                    {% csrf_token %}
+                    <div class="row g-2">
+                        <div class="col-8">
+                            <input type="text" name="description" class="form-control form-control-sm"
+                                   placeholder="Описание работы" required>
+                        </div>
+                        <div class="col-4">
+                            <input type="number" name="cost" class="form-control form-control-sm"
+                                   placeholder="Руб." step="0.01" min="0">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-sm btn-success w-100">
+                                <i class="bi bi-plus"></i> Добавить работу
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Платежи -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-cash"></i> Платежи</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>
+                                {{ payment.paid_at|date:"d.m.Y" }}
+                                {% if payment.is_prepayment %}
+                                <span class="badge bg-info">предоплата</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ payment.get_payment_type_display }}</td>
+                            <td class="text-end"><strong>{{ payment.amount }} руб.</strong></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td class="text-muted text-center py-2" colspan="3">Оплат нет</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer">
+                <form method="post" action="{% url 'orders:add_payment' order.pk %}">
+                    {% csrf_token %}
+                    <div class="row g-2">
+                        <div class="col-5">
+                            <input type="number" name="amount" class="form-control form-control-sm"
+                                   placeholder="Сумма (руб.)" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-4">
+                            <select name="payment_type" class="form-select form-select-sm">
+                                <option value="cash">Наличные</option>
+                                <option value="card">Карта</option>
+                            </select>
+                        </div>
+                        <div class="col-3 d-flex align-items-center">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_prepayment"
+                                       class="form-check-input" id="prepay">
+                                <label class="form-check-label small" for="prepay">Предоплата</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-sm btn-success w-100">
+                                <i class="bi bi-plus"></i> Добавить оплату
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- История изменений -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-clock-history"></i> История изменений</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Дата</th><th>Пользователь</th><th>Поле</th><th>Было</th><th>Стало</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for h in history %}
+                        <tr>
+                            <td><small>{{ h.changed_at|date:"d.m.Y H:i" }}</small></td>
+                            <td><small>{{ h.changed_by.username|default:"—" }}</small></td>
+                            <td><small>{{ h.field_name }}</small></td>
+                            <td><small class="text-muted">{{ h.old_value|default:"—" }}</small></td>
+                            <td><small>{{ h.new_value }}</small></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted py-2">История пуста</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

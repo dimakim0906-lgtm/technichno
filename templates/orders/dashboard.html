@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная — Технично{% endblock %}
+
+{% block content %}
+<h4 class="mb-4">Главная панель</h4>
+
+<!-- Счётчики -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="fs-2 fw-bold">{{ orders_today }}</div>
+                        <div>Заказов сегодня</div>
+                    </div>
+                    <div class="fs-1 opacity-50"><i class="bi bi-plus-circle"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="fs-2 fw-bold">{{ orders_in_work }}</div>
+                        <div>В работе</div>
+                    </div>
+                    <div class="fs-1 opacity-50"><i class="bi bi-tools"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="fs-2 fw-bold">{{ orders_ready }}</div>
+                        <div>Готовы к выдаче</div>
+                    </div>
+                    <div class="fs-1 opacity-50"><i class="bi bi-check-circle"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="fs-2 fw-bold">{{ orders_overdue }}</div>
+                        <div>Просрочено</div>
+                    </div>
+                    <div class="fs-1 opacity-50"><i class="bi bi-exclamation-triangle"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Выручка и кнопка -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-success">
+            <div class="card-body">
+                <h6 class="text-muted">Выручка сегодня</h6>
+                <div class="fs-3 fw-bold text-success">{{ revenue_today }} руб.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 d-flex align-items-center">
+        <a href="{% url 'orders:create' %}" class="btn btn-primary btn-lg w-100">
+            <i class="bi bi-plus-lg"></i> Новый заказ
+        </a>
+    </div>
+</div>
+
+<!-- Последние заказы -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Последние заказы</h6>
+        <a href="{% url 'orders:list' %}" class="btn btn-sm btn-outline-primary">Все заказы</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>№</th>
+                    <th>Клиент</th>
+                    <th>Устройство</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in recent_orders %}
+                <tr>
+                    <td><strong>#{{ order.id }}</strong></td>
+                    <td>{{ order.client.full_name }}<br>
+                        <small class="text-muted">{{ order.client.phone }}</small>
+                    </td>
+                    <td>{{ order.device_brand }} {{ order.device_model }}</td>
+                    <td>
+                        <span class="badge bg-{{ order.status.color }}">
+                            {{ order.status.name }}
+                        </span>
+                        {% if order.is_overdue %}
+                        <span class="badge bg-danger ms-1">Просрочен</span>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ order.received_at|date:"d.m.Y H:i" }}</small></td>
+                    <td>
+                        <a href="{% url 'orders:detail' order.pk %}"
+                           class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-3">Заказов пока нет</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

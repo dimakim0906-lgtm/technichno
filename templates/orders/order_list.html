@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Заказы — Технично{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">Список заказов</h4>
+    <a href="{% url 'orders:create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Новый заказ
+    </a>
+</div>
+
+<!-- Фильтры -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small">Поиск</label>
+                <input type="text" name="search" class="form-control"
+                       placeholder="Клиент, телефон, модель..." value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Статус</label>
+                <select name="status" class="form-select">
+                    <option value="">Все статусы</option>
+                    {% for s in statuses %}
+                    <option value="{{ s.id }}" {% if current_status == s.id|stringformat:"s" %}selected{% endif %}>
+                        {{ s.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Дата от</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Дата до</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-search"></i> Найти
+                </button>
+            </div>
+            <div class="col-md-1">
+                <a href="{% url 'orders:list' %}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-x"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Таблица заказов -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>№</th>
+                    <th>Клиент</th>
+                    <th>Устройство</th>
+                    <th>Дефект</th>
+                    <th>Статус</th>
+                    <th>Стоимость</th>
+                    <th>Дата приёма</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr {% if order.is_overdue %}class="table-danger"{% endif %}>
+                    <td><strong>#{{ order.id }}</strong></td>
+                    <td>
+                        {{ order.client.full_name }}<br>
+                        <small class="text-muted">{{ order.client.phone }}</small>
+                    </td>
+                    <td>{{ order.device_brand }} {{ order.device_model }}</td>
+                    <td><small>{{ order.defect_description|truncatechars:40 }}</small></td>
+                    <td>
+                        <span class="badge bg-{{ order.status.color }}">
+                            {{ order.status.name }}
+                        </span>
+                        {% if order.is_overdue %}
+                        <br><span class="badge bg-danger mt-1">Просрочен</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if order.final_cost %}
+                            <strong>{{ order.final_cost }} руб.</strong>
+                        {% elif order.estimated_cost %}
+                            ~{{ order.estimated_cost }} руб.
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ order.received_at|date:"d.m.Y H:i" }}</small></td>
+                    <td>
+                        <a href="{% url 'orders:detail' order.pk %}"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        Заказов не найдено
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
